@@ -31,3 +31,9 @@ Restituisci **solo** un oggetto JSON in uno di questi due formati:
     "error": "Non ci sono dati sufficienti per costruire un grafico o una tabella."
 }
 ```
+
+Richiesta dell’utente:
+{{QUERY_UTENTE}}
+
+Testo da analizzare:
+{{TESTO_INPUT}}
