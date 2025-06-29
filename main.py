@@ -2,37 +2,69 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="Demo Dashboard", layout="centered")
+# Configurazione iniziale della pagina
+st.set_page_config(
+    page_title="Demo Dashboard",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Titolo dell'app
-st.title("Demo Dashboard")
+# === SIDEBAR ===
+st.sidebar.title("📁 Carica i tuoi documenti")
 
-# Selettore cartella (simulato)
-folder = st.text_input("1. Inserisci il percorso della cartella con i documenti (simulato)", "/path/to/docs")
-st.write(f"Cartella selezionata: {folder}")
+# Simulazione di sottocartelle
+folders = [
+    "Contratti commerciali",  # default
+    "Fatture",
+    "Report mensili",
+    "Comunicazioni",
+    "Altro"
+]
 
-# Input di query in linguaggio naturale
-query = st.text_input("2. Digita la tua query (es. 'Mostra l'andamento degli stipendi nel tempo')")
+selected_folder = st.sidebar.selectbox(
+    "Scegli una sottocartella:",
+    folders,
+    index=folders.index("Contratti commerciali")
+)
 
-# Bottone per generare
-if st.button("Conferma e genera"):
-    # Funzione fake LLM per generare dati finti
+st.sidebar.write(f"📂 Cartella selezionata: **{selected_folder}**")
+
+# Simulazione di caricamento file in base alla cartella selezionata
+uploaded_files = st.sidebar.file_uploader(
+    f"Carica file in '{selected_folder}'",
+    type=["pdf", "csv", "txt", "docx"],
+    accept_multiple_files=True
+)
+
+if uploaded_files:
+    st.sidebar.success(f"{len(uploaded_files)} file caricati.")
+else:
+    st.sidebar.info("Nessun file caricato in questa cartella.")
+
+# === CONTENUTO PRINCIPALE ===
+st.title("📊 Search Driven Analytics")
+
+
+# Input utente
+query = st.text_input("✏️ Digita la tua query", placeholder="Es. Mostra l'andamento degli stipendi nel tempo")
+
+# Bottone
+if st.button("🎯 Conferma e genera"):
+    
     def fake_llm_response(query_text):
-        if query_text == "":
+        if query_text.strip() == "":
             return {"warning": "Query vuota. Scrivi cosa vuoi analizzare."}
-
-        # Se la query contiene 'stipendi'
         elif "stipendi" in query_text.lower():
             dates = [datetime.now() - timedelta(days=30*i) for i in range(12)][::-1]
             values = np.random.randint(2000, 5000, size=12)
             return {
                 "chart_type": "line",
-                "title": "Andamento stipendi",
+                "title": "Andamento degli stipendi negli ultimi 12 mesi",
                 "x": [d.strftime('%Y-%m') for d in dates],
                 "y": values.tolist()
             }
-        # Se la query contiene 'vendite'
         elif "vendite" in query_text.lower():
             quarters = [f"Q{i}" for i in range(1,5)]
             values = np.random.randint(10000, 50000, size=4)
@@ -42,14 +74,13 @@ if st.button("Conferma e genera"):
                 "x": quarters,
                 "y": values.tolist()
             }
-        # Altrimenti ritorna errore
         else:
             return {"error": "Non ci sono dati sufficienti per costruire un grafico o una tabella."}
 
-    # Chiamata fake LLM
+    # Risposta simulata
     response = fake_llm_response(query)
 
-    # Gestione risposta
+    # Output
     if "warning" in response:
         st.warning(response["warning"])
     elif "error" in response:
@@ -60,22 +91,19 @@ if st.button("Conferma e genera"):
         x = response.get("x", [])
         y = response.get("y", [])
 
-        st.subheader(title)
+        st.subheader(f"📈 {title}")
 
-        df = pd.DataFrame({"x": x, "y": y})
-        df = df.set_index("x")
+        df = pd.DataFrame({"x": x, "y": y}).set_index("x")
 
         if chart_type == "line":
             st.line_chart(df)
         elif chart_type == "bar":
             st.bar_chart(df)
         elif chart_type == "pie":
-            # per demo, st.pyplot con matplotlib
-            import matplotlib.pyplot as plt
             fig, ax = plt.subplots()
             ax.pie(response.get("values", []), labels=response.get("labels", []), autopct='%1.1f%%')
             st.pyplot(fig)
         elif chart_type == "table":
             st.table(response.get("table", []))
         else:
-            st.write("Tipo di grafico non supportato nella demo.")
+            st.info("Tipo di grafico non supportato nella demo.")
