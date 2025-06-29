@@ -1,7 +1,3 @@
 streamlit
-torch
-transformers
 pandas
-matplotlib
-plotly
-PyPDF2
+numpy
