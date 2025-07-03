@@ -14,25 +14,42 @@ st.set_page_config(page_title="LLM Chart Generator", page_icon="📊", layout="w
 
 
 def get_text_files_from_folder(folder_path: str) -> Dict[str, str]:
-    """Legge tutti i file di testo dalla cartella selezionata"""
+    """Legge tutti i file di testo e documenti PDF/Word dalla cartella selezionata"""
     text_files = {}
     if not folder_path or not os.path.exists(folder_path):
         return text_files
-
+    
+    supported_extensions = [".txt", ".md", ".csv", ".pdf", ".docx"]
+    
     try:
         for file_path in Path(folder_path).rglob("*"):
-            if file_path.is_file() and file_path.suffix.lower() in [".txt", ".md", ".csv"]:
+            if file_path.is_file() and file_path.suffix.lower() in supported_extensions:
                 try:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        content = f.read()
-                        text_files[str(file_path)] = content
+                    if file_path.suffix.lower() == ".pdf":
+                        import PyPDF2
+                        with open(file_path, "rb") as f:
+                            reader = PyPDF2.PdfReader(f)
+                            content = ""
+                            for page in reader.pages:
+                                content += page.extract_text()
+                    
+                    elif file_path.suffix.lower() == ".docx":
+                        import docx2txt
+                        content = docx2txt.process(file_path)
+                    
+                    else:  # .txt, .md, .csv
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            content = f.read()
+                    
+                    text_files[str(file_path)] = content
+                
                 except Exception as e:
-                    st.warning(f"Impossibile leggere il file {file_path}: {str(e)}")
+                    st.warning(f"Impossibile leggere {file_path}: {str(e)}")
+    
     except Exception as e:
         st.error(f"Errore nella lettura della cartella: {str(e)}")
-
+    
     return text_files
-
 
 def call_local_llm(
     prompt: str,
@@ -105,13 +122,19 @@ def create_chart(chart_data: Dict[str, Any]) -> Optional[go.Figure]:
             fig = px.scatter(x=x_values, y=y_values, title=title)
 
         elif chart_type == "table":
-            table_data = chart_data.get("table", [])
-            if table_data:
-                df = pd.DataFrame(table_data)
+            # Estrai intestazioni e righe dal JSON
+            headers = chart_data.get("headers", [])
+            rows = chart_data.get("rows", [])
+            
+            # Verifica che entrambi i campi siano presenti e non vuoti
+            if headers and rows:
+                # Crea un DataFrame con le intestazioni come colonne
+                df = pd.DataFrame(rows, columns=headers)
                 st.subheader(title)
                 st.dataframe(df, use_container_width=True)
                 return None
             else:
+                st.error("Dati della tabella incompleti o mancanti.")
                 return None
         else:
             return None
@@ -295,12 +318,6 @@ Prima di rispondere, verifica:
                             fig = create_chart(result)
                             if fig:
                                 st.plotly_chart(fig, use_container_width=True)
-
-                                # Pulsante per scaricare i dati
-                                if st.button("💾 Scarica dati JSON"):
-                                    st.download_button(
-                                        label="Scarica JSON", data=json.dumps(result, indent=2), file_name="chart_data.json", mime="application/json"
-                                    )
                     else:
                         st.error("❌ Errore nella comunicazione con il LLM")
 

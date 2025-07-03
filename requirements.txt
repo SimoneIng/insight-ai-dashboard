@@ -1,3 +1,5 @@
 streamlit
 pandas
 plotly
+PyPDF2 
+docx2txt
