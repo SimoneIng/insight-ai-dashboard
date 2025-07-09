@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from pathlib import Path
 import requests
 from typing import Dict, Any, Optional
+from utils import load_prompt_template
 
 
 # Configurazione della pagina
@@ -219,90 +220,8 @@ if folder_path:
             else:
                 with st.spinner("Elaborazione in corso..."):
                     # Costruzione del prompt
-                    prompt_template = """
-Sei un assistente specializzato nell'estrazione e visualizzazione di dati. Il tuo compito è analizzare il testo fornito ed estrarre dati per creare visualizzazioni.
-
-## ISTRUZIONI CRITICHE:
-1. Rispondi SOLO con JSON valido, senza testo aggiuntivo
-2. Usa ESATTAMENTE i nomi dei campi specificati negli schemi
-3. Non aggiungere, rimuovere o modificare i nomi dei campi
-4. le liste "x" e "y" devono avere la stessa quantità di valori
-
-## SCHEMI JSON (USA ESATTAMENTE QUESTI):
-
-### Per grafici a barre o a linee:
-```json
-{{
-    "chart_type": "bar",
-    "title": "string",
-    "x": ["array di stringhe"],
-    "y": ["array di numeri"]
-}}
-```
-
-### Per grafici a torta:
-```json
-{{
-    "chart_type": "pie", 
-    "title": "string",
-    "labels": ["array di stringhe"],
-    "values": ["array di numeri"]
-}}
-```
-
-### Per scatter plot:
-```json
-{{
-    "chart_type": "scatter",
-    "title": "string", 
-    "x": ["array di numeri"],
-    "y": ["array di numeri"],
-    "point_labels": ["array di stringhe (opzionale)"]
-}}
-```
-
-### Per tabelle:
-```json
-{{
-    "chart_type": "table",
-    "title": "string",
-    "headers": ["array di stringhe"],
-    "rows": [["array", "di", "valori"], ["seconda", "riga", "valori"]]
-}}
-```
-
-### Per errori:
-```json
-{{
-    "error": "Messaggio di errore specifico"
-}}
-```
-
-## REGOLE DI SELEZIONE TIPO GRAFICO:
-- **bar**: Confronti tra categorie, ranking, quantità discrete
-- **line**: Trend temporali, progressioni, evoluzioni
-- **pie**: Composizione percentuale, parti di un tutto
-- **scatter**: Correlazioni tra due variabili numeriche
-- **table**: Dati complessi multicolonna o liste dettagliate
-
-## VALIDAZIONE OUTPUT:
-Prima di rispondere, verifica:
-1. Il JSON è sintatticamente corretto
-2. I nomi dei campi corrispondono ESATTAMENTE agli schemi
-3. I tipi di dati sono corretti (stringhe, numeri, array)
-4. Non ci sono campi extra o mancanti
-
----
-
-**Richiesta utente:** {query}
-
-**Testo da analizzare:** {text}
-
-**RISPOSTA (solo JSON)**
-"""
-
+                    prompt_template = load_prompt_template("./src/prompt.txt")
                     full_prompt = prompt_template.format(query=user_query, text=text_files[selected_file])
-
                     # Chiamata al LLM
                     result = call_local_llm(full_prompt, llm_url, model_name)
 
